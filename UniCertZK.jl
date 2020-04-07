@@ -49,6 +49,24 @@ return a
 end
 
 
+function rational_reconstruction_ZMat(A::fmpz_mat, M::fmpz)
+  n = nrows(A)
+  m = ncols(A)    
+  B = zero_matrix(QQ,n,m)
+  for i=1:n
+    for j=1:m
+      fl,a,b  = rational_reconstruction(A[i,j], M)
+      B[i,j] = a//b
+      if !fl 
+        return false, B
+      end
+    end
+  end
+  return true, B
+end
+
+
+
 function rational_reconstruction2_copy(A::Generic.Mat{nf_elem}, M::fmpz)
   B = similar(A)
   sM = root(M, 2)
@@ -140,7 +158,7 @@ end
 
 #UniCert for integer matrices using Quadrstic lifting Storjohan
 # k: # of steps
-function UniCertQ(A::fmpz_mat, k::fmpz)
+function UniCertQ(A::fmpz_mat, k::Int64)
 n = nrows(A)
 p = Hecke.next_prime(Hecke.p_start)
 d = det(mod(A,fmpz(2)))
@@ -152,7 +170,6 @@ O = MatrixSpace(QQ,n,n)(0)
 
   RR = ResidueRing(FlintZZ,p)
   W = MatrixSpace(RR,n,n)
-
   B = lift(inv(W(A)))
   AB = matrix(QQ,n,n,array_mat(A*B))
   I = MatrixSpace(QQ,n,n)(1)
@@ -177,7 +194,7 @@ end
 
 
 
-#UniCert for matrices over number fields using Quadrstic lifting Storjohan
+#UniCert for matrices over number fields using Quadratic lifting Storjohan
 # k: # of steps
 function UniCert(A::Generic.Mat{nf_elem}, k::Int64)
 p = Hecke.next_prime(Hecke.p_start)
@@ -221,7 +238,43 @@ R = (I-A*B)*(1//p)
 end
 
 
-#Inverse computation Linear Lifting
+#Inverse computation using Linear Lifting
+
+# Matrices over Z
+function InvLift(A::fmpz_mat)#, p::Int64
+n = nrows(A)
+AQ = matrix(QQ,n,n,array_mat(A))
+p = Hecke.next_prime(Hecke.p_start)
+RR = ResidueRing(FlintZZ,p)
+W = MatrixSpace(RR,n,n)
+B = lift(inv(W(A)))
+iA = deepcopy(B)
+AB = matrix(QQ,n,n,array_mat(A*B))
+I = MatrixSpace(QQ,n,n)(1)
+R = (I-AB)*(1//p)
+B = matrix(QQ,n,n,array_mat(B))
+pp = fmpz(p)
+i=1
+        while true
+@show i+=1
+        BR = matrix(ZZ,n,n,array_mat(B*R))
+        C = lift(W(BR))
+
+            iA += C*pp
+            pp *= p
+            fl, IA= rational_reconstruction_ZMat(iA,pp) 
+                if fl && AQ*IA==I
+                    return IA
+                end
+
+        AC = matrix(QQ,n,n,array_mat(A*C))
+        R = (R-AC)*(1//p)
+        end
+end
+
+
+
+
 
 function InvLift(A::Generic.Mat{nf_elem}) #, p::Int64, k::Int64
 p = Hecke.next_prime(Hecke.p_start)
@@ -244,13 +297,9 @@ pp = fmpz(p)
         ap = [inv(x) for x= ap]
         B = Hecke.modular_lift(ap, me)
         iA = deepcopy(B)
-
         I = MatrixSpace(K,n,n)(1)
         R = (I-A*B)*(1//p)
-
-
 i=1
- #       for i=1:k
         while true
 @show i+=1
             M = Hecke.modular_lift(Hecke.modular_proj(B*R, me), me)
