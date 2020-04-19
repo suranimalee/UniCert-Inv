@@ -283,7 +283,7 @@ n = nrows(A)
 K = Hecke.base_ring(A)
 I = MatrixSpace(K,n,n)(K(1))
 
-me = Hecke.modular_init(K, fmpz(2))
+me = Hecke.modular_init(K, fmpz(p))
 ap = Hecke.modular_proj(A, me)
 AA = Hecke.modular_lift(ap, me)
  d = det(AA)
