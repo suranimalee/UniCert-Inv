@@ -156,7 +156,7 @@ end
 
 
 # Work
-# UniCert for integer matrices using Quadrstic lifting Storjohan
+# UniCert for integer matrices using DoublePlus Storjohan
 # k: # of steps
 function UniCertQ(A::fmpz_mat, k::Int64)
 n = nrows(A)
@@ -194,7 +194,7 @@ end
 
 
 # Doesn't work 3 constant cycle/ Sometimes work
-# UniCert for matrices over number fields using Quadratic lifting Storjohan
+# UniCert for matrices over number fields using DoublePlus Storjohan
 # k: # of steps
 function UniCertD(A::Generic.Mat{nf_elem}, k::Int64)
 p = Hecke.next_prime(Hecke.p_start)
