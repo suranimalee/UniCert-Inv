@@ -396,7 +396,7 @@ function PseudoDet(A::Generic.Mat{nf_elem}, U::UnitRange{Int64})
     C = inv(Ti[2:n+1,2:n+1]'*A')
     u = Ti[1:1, 2:n+1]
     c = inv( 1+(b'*C*u')[1,1])
-    d = pseudo_matrix((C- c*C*u'*b'*C)',  h[2:n+1])
+    d = pseudo_matrix((C- c*(C*u')*(b'*C))',  h[2:n+1])
     end 
     D = false    
 tt=0
@@ -405,7 +405,7 @@ tt=0
         @time D = Denom(d)
         if D
             P=prod(h[2:n+1])
-            return  determinant_test(integral_split(P)[1],A) 
+            return determinant_test(integral_split(P)[1],A) 
         end
 @show tt+=1
         b = rand(MatrixSpace(K, n, 1), U)   
@@ -423,7 +423,7 @@ tt=0
         u = Ti[1:1, 2:n+1]
         c = inv( 1+(b'*C*u')[1,1])
         println("Sherman")
-        @time  d = pseudo_matrix((C- c*C*u'*b'*C)',  h[2:n+1])
+        @time  d = pseudo_matrix((C- c*(C*u')*(b'*C))',  h[2:n+1])
         end
     end
 end

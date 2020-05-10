@@ -22,7 +22,7 @@ d = det(AA)
     pp = fmpz(p)
     iA = deepcopy(B)
     I = MatrixSpace(K,n,n)(1)
-    R = (I-A*B)*(1//p)
+    R = (1//p)*(I-A*B)
 i=1
         while true
             T = R*R
@@ -34,7 +34,7 @@ i=1
                 if fl && A*IA ==I
                     return IA
                 end
-            R = (T-A*M)*(1//p)
+            R = (1//p)*(T-A*M)
 @show i+=1
         end
             return false

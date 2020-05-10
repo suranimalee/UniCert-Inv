@@ -94,7 +94,7 @@ function rational_reconstruction2_copy(A::Generic.Mat{nf_elem}, M::fmpz)
   return true, B
 end
 
-
+# Work becomes zero
 # Unimodular Certification for Integer Matrices using Linear Lifting
 # D=A*A'
 # UniCert(D,13,11)
@@ -118,7 +118,7 @@ B = matrix(QQ,n,n,array_mat(B))
     end
 end
 
-
+# Becomes constant not zero mat
 # Unimodular certification for matrices over Number Fields using Linear Lifting
 # G=A*A'
 # UniCert(G,13,11)
@@ -144,7 +144,7 @@ AA = Hecke.modular_lift(ap, me)
         B = Hecke.modular_lift(ap, me)
 
         I=MatrixSpace(K,n,n)(1)
-        @show R=(I-A*B)*(1//p)
+        R=(I-A*B)*(1//p)
 
         for i=1:k
             @show i
@@ -155,8 +155,8 @@ AA = Hecke.modular_lift(ap, me)
 end
 
 
-
-#UniCert for integer matrices using Quadrstic lifting Storjohan
+# Work
+# UniCert for integer matrices using Quadrstic lifting Storjohan
 # k: # of steps
 function UniCertQ(A::fmpz_mat, k::Int64)
 n = nrows(A)
@@ -193,23 +193,23 @@ O = MatrixSpace(QQ,n,n)(0)
 end
 
 
-
-#UniCert for matrices over number fields using Quadratic lifting Storjohan
+# Doesn't work 3 constant cycle/ Sometimes work
+# UniCert for matrices over number fields using Quadratic lifting Storjohan
 # k: # of steps
-function UniCert(A::Generic.Mat{nf_elem}, k::Int64)
+function UniCertD(A::Generic.Mat{nf_elem}, k::Int64)
 p = Hecke.next_prime(Hecke.p_start)
 n = nrows(A)
 #@show  p = Hecke.next_prime(fmpz(ceil(max(10000,3.61*n^2*abs(norm(det(A)))))))	
 K = Hecke.base_ring(A)
 d = degree(K)
-me = Hecke.modular_init(K, fmpz(2))
-ap = Hecke.modular_proj(A, me)
-AA = Hecke.modular_lift(ap, me)
-d = det(AA)
+#me = Hecke.modular_init(K, fmpz(2))
+#ap = Hecke.modular_proj(A, me)
+#AA = Hecke.modular_lift(ap, me)
+#d = det(AA)
 
- if d==0
-    return false
- else
+# if d==0
+#    return false
+# else
 
 O = MatrixSpace(K,n,n)(0)
 me = Hecke.modular_init(K, fmpz(p))
@@ -218,14 +218,13 @@ ap = [inv(x) for x= ap]
 B = Hecke.modular_lift(ap, me)
 
 I = MatrixSpace(K,n,n)(1)
-R = MatrixSpace(K,n,n)
 R = (I-A*B)*(1//p)
 
     for i=0:k-1
         T = R*R
         N = Hecke.modular_proj(B*T, me)
         M = Hecke.modular_lift(N, me)
-        R = (T-A*M)*(1//p)
+@show         R = (T-A*M)*(1//p)
 @show i
         if R==O
             return true
@@ -234,10 +233,11 @@ R = (I-A*B)*(1//p)
         end
     end
     return false
- end
+ #end
 end
 
 
+#Work
 #Inverse computation using Linear Lifting
 
 # Matrices over Z
@@ -275,7 +275,7 @@ end
 
 
 
-
+# Work
 function InvLift(A::Generic.Mat{nf_elem}) #, p::Int64, k::Int64
 p = Hecke.next_prime(Hecke.p_start)
 #p = Hecke.next_prime(p)
@@ -306,8 +306,10 @@ i=1
             R = (R-A*M)*(1//p)
             iA += M*pp
             pp *= p
+@show iA
             fl, IA= rational_reconstruction2_copy(iA,pp) #rational_reconstruction(iA,pp) 
                 if fl && A*IA==I
+@show iA
                     return IA
                 end
         end
