@@ -326,7 +326,7 @@ k = nLifts(A, X.N)
 
     Ap = RRSmat(P, A)
     Ax = RRSmat(X, A)
-#TODO C-code check existancy
+#TODO C-code check existence
     Cx = invM(Ax)
     Rp = identM(Ap)
     Mx = Cx
