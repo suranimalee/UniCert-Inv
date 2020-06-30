@@ -334,7 +334,8 @@ k = nLifts(A, X.N)
     Mp = convert(P, Mx)
 
     for i = 1:k
- @show  Tp = Rp*Rp
+ @show i
+        Tp = Rp*Rp
  #      Tp = mult(Rp,Rp)
  #@show  Rp = QuadLift(Ap, Mp, Tp, iX, iXr)
         Rp = QuadLift(Ap, Mp, Tp, iX, iXr, X.N)
@@ -344,7 +345,7 @@ k = nLifts(A, X.N)
                 continue
             end
 
- @show  Rx = convert(X, Rp)
+        Rx = convert(X, Rp)
         Tx = Rx*Rx
  #      Tx = mult(Rx, Rx)
         Mx = Cx*Tx
