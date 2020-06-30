@@ -182,9 +182,9 @@ divexact(a::RRSmat, b::fmpz) = RRSmat(a.R, [Hecke.mod_sym(a.x[i]*invmod(b, a.R.p
 
 # converter base of "a": a.R to B
 convert(B::RRS, a::RRSmat) = RRSmat(B, [extend(a.R , a , B.p[i]) for i = 1: length(B.p)], a.r )
-#TODO check?
-#QuadLift( A::RRSmat, M::RRSmat, T::RRSmat, iX :: Array{fmpz,1}, iXr :: fmpz) = RRSmat(A.R, [Hecke.mod_sym(iX[i]*(T.x[i]-A.x[i]*M.x[i]), A.R.p[i]) for i=1:length(A.x)], Hecke.mod_sym(iXr*(T.r - A.r*M.r), A.R.r))
-QuadLift( A::RRSmat, M::RRSmat, T::RRSmat, iX :: Array{fmpz,1}, iXr :: fmpz, X :: fmpz) = RRSmat(A.R, [Hecke.mod_sym(divexact((T.x[i]-A.x[i]*M.x[i]),X), A.R.p[i]) for i=1:length(A.x)], Hecke.mod_sym(divexact((T.r - A.r*M.r),X), A.R.r))
+TODO check?
+QuadLift( A::RRSmat, M::RRSmat, T::RRSmat, iX :: Array{fmpz,1}, iXr :: fmpz) = RRSmat(A.R, [Hecke.mod_sym(iX[i]*(T.x[i]-A.x[i]*M.x[i]), A.R.p[i]) for i=1:length(A.x)], Hecke.mod_sym(iXr*(T.r - A.r*M.r), A.R.r))
+#QuadLift( A::RRSmat, M::RRSmat, T::RRSmat, iX :: Array{fmpz,1}, iXr :: fmpz, X :: fmpz) = RRSmat(A.R, [Hecke.mod_sym(divexact((T.x[i]-A.x[i]*M.x[i]),X), A.R.p[i]) for i=1:length(A.x)], Hecke.mod_sym(divexact((T.r - A.r*M.r),X), A.R.r))
 
 mult(a::RRSmat, b::RRSmat) = RRSmat(a.R, [(a.x[i]*b.x[i]) for i=1:length(a.x)], a.r*b.r)
 
@@ -337,8 +337,8 @@ k = nLifts(A, X.N)
  @show i
         Tp = Rp*Rp
  #      Tp = mult(Rp,Rp)
- #@show  Rp = QuadLift(Ap, Mp, Tp, iX, iXr)
-        Rp = QuadLift(Ap, Mp, Tp, iX, iXr, X.N)
+ @show  Rp = QuadLift(Ap, Mp, Tp, iX, iXr)
+ #       Rp = QuadLift(Ap, Mp, Tp, iX, iXr, X.N)
             if iszeroM(Rp)
                 return true
             else
