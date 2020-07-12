@@ -1,4 +1,4 @@
-import Hecke: valuation, divexact, parent_type, elem_type, mul!, addeq!, parent
+import Hecke: valuation,  divexact, parent_type, elem_type, mul!, addeq!, parent
 import Base: +, -, *, ^
 export RNSnf_elem
 
@@ -65,9 +65,9 @@ mutable struct RNS <: Hecke.Ring
   p::Array{fmpz, 1}
   P::Array{fmpz, 1}
   Pi::Array{fmpz, 1}
-#  w::Array{fmpq, 1}
-#  c::Array{fmpz, 1}  
-  r::fmpz
+  w::Array{fmpq, 1}
+  c::Array{fmpz, 1}  
+#  r::fmpz
   N::fmpz
   ce
 
@@ -77,11 +77,11 @@ mutable struct RNS <: Hecke.Ring
     P = prod(p)
     s.P = [divexact(P, x) for x = p]
     s.Pi = [invmod(s.P[i], s.p[i]) for i = 1:length(p)]
-    s.r = next_prime(2^50)
+#    s.r = next_prime(2^50)
     s.N = P
     s.ce = Hecke.crt_env(p)
-#    s.w = [s.Pi[i]//s.p[i] for i = 1:length(p)]
-#    s.c = [s.P[i]*s.Pi[i] for i = 1:length(p)]
+    s.w = [s.Pi[i]//s.p[i] for i = 1:length(p)]
+    s.c = [s.P[i]*s.Pi[i] for i = 1:length(p)]
     return s
   end
 
@@ -165,7 +165,7 @@ function check(a::RNSnf_elem)
   @assert mod(z, a.R.r) == a.r
 end
 
-#TODO use idempotents for extend
+#TODO check
 # given x mod p_i and p_r, find x mod p 
 function extend(R::RNS, a::RNSnf_elem, p::fmpz)
   k = sum((mod(a.x[i]*R.Pi[i] , R.p[i])) * mod(R.P[i] , R.r) for i=1:length(R.p)) - a.r
@@ -277,6 +277,9 @@ i = 1
     end
 end
 
+############################################
+#       convert: Mixed radix base extension
+############################################
 
 function mixed_radix(R::RNS, a::RNSmat)#, li::Int = typemax(Int))
 A = Generic.MatSpaceElem{nf_elem}[]
@@ -313,10 +316,51 @@ L = rss_mat_from_radix(a.R, LL)
 end 
 
 
-# converter base of "a": a.R to B
-
+# for this convert, weight w and c can be removed from RNS
 convert(B::RNS, a::RNSmat) = RNSmat(B, extend_mix(B, a) )
 
+#############################################
+#       convert: Approximated base extension
+#############################################
+
+function mat_mul_fq(A::MatElem{T}, p::fmpq) where T
+   K = Hecke.base_ring(A)  
+   a = zero_matrix(K, nrows(A), ncols(A))
+   for i=1:nrows(A)
+     for j=1:ncols(A)
+	    a[i,j] = p*A[i,j]
+     end
+   end
+   return a
+end
+
+
+function round_coeff(A::Generic.MatSpaceElem{nf_elem})
+ K = Hecke.base_ring(A) 
+ d = degree(K)
+ S = zero_matrix(ZZ,1,d)
+ a = zero_matrix(K, nrows(A), ncols(A))
+   for i= 1: nrows(A)   
+        for j= 1:ncols(A)
+            l = coeffs(A[i,j])
+            for k = 1:d
+                S[1,k] = fmpz(round(l[k]))
+            end
+	        a[i,j]= Hecke.elem_from_mat_row(K,S,1,fmpz(1))
+        end
+   end
+   return a
+end
+
+function extend_round(R::RNS, a::RNSmat, p::fmpz)
+    corr =round_coeff(sum(mat_mul_fq(a.x[i], R.w[i]) for i=1:length(R.p)))         
+    k = -Hecke.mod_sym(R.N, p)
+    ap = sum(Hecke.mod_sym(R.c[i], p)*a.x[i] for i=1:length(R.p))  
+    ap = modsM(ap+ k*corr, p)
+    return ap 
+end
+
+# convert(B::RNS, a::RNSmat) = RNSmat(B, [extend_round(a.R , a , B.p[i]) for i = 1: length(B.p)] )
 
 
 ###########################################################################################
@@ -358,7 +402,7 @@ function genPrimes(start::fmpz, bound::fmpz)
     i = 0
     while tot < bound
         i +=1
-        start = smaller_prime(start)
+        start = previous_prime(start)
         push!(a, start)
         tot *= start
     end
@@ -368,8 +412,8 @@ end
 
 #TODO chage as C-code simple way
 function p_start_mat(A:: Generic.Mat{nf_elem})
-    n = nrows(A)
-    return numerator(floor(fmpz(floor(sqrt(4*n*(2^53-1)+1) +(2*n-1)))//(2*n)))
+    n = fmpz(nrows(A))
+    return numerator(floor(fmpz(floor(root(4*n*(2^53-1)+1, 2) +(2*n-1)))//(2*n)))
 end
 
 # bound for basis P and X 
@@ -394,7 +438,7 @@ n = nrows(A)
     if isodd(n)
         n = n+1
     end
-    bound = fmpz(n^((n//2)-2)*S^(n-2))
+    bound = fmpz(n)^(div(n, 2)-2)*fmpz(S)^(n-2)
     y = fmpz(1)
     k = 1
     while y < bound
@@ -417,10 +461,13 @@ c1,c2=norm_change_const(zk)
 d = degree(K)
 p0 = p_start_mat(A) #fmpz(100) 
 PB, XB = PXbounds(A, u)
-P, np = genPrimes(p0, PB)
-X, nx = genPrimes(P[np], XB)
-@show P = RNS(P)
-@show X = RNS(X)
+println("prime gen")
+@time begin
+@show P, np = genPrimes(p0, PB)
+@show X, nx = genPrimes(P[np], XB)
+end
+ P = RNS(P)
+ X = RNS(X)
 k = nLifts(A, X.N, u)
 
     iX = Array(ZZ,np)
@@ -428,30 +475,36 @@ k = nLifts(A, X.N, u)
        iX[i] = invmod(X.N, P.p[i])  
     end
 
-    Ap = RNSmat(P, A)
-    Ax = RNSmat(X, A)
+        Ap = RNSmat(P, A)
+        Ax = RNSmat(X, A)
 #TODO C-code check existence
-    Cx = invM(Ax)
-    Rp = identM(Ap)
-    Mx = Cx
-    Mp = convert(P, Mx)
+println("inv")
+@time   Cx = invM(Ax)
+        Rp = identM(Ap)
+        Mx = Cx
+println("convert")
+@time   Mp = convert(P, Mx)
 
     for i = 1:k+5
 @show i
-        Tp = Rp*Rp
-        Rp = QuadLift(Ap, Mp, Tp, iX)      
+@time         Tp = Rp*Rp
+println("Double_lift")
+
+@time       Rp = QuadLift(Ap, Mp, Tp, iX)      
             if iszeroM(Rp)
-                return true
-               #else
-            #continue
             end
-        Rx = convert(X, Rp)
-        Tx = Rx*Rx
-        Mx = Cx*Tx
-@show        Mp = convert(P, Mx)
-       
+println("convert1")
+@time        Rx = convert(X, Rp)
+println("mult")
+@time             Tx = Rx*Rx
+@time             Mx = Cx*Tx
+println("convert2")
+@time             Mp = convert(P, Mx)
+
+          
     end
     return false
+
 end
 
 
@@ -500,12 +553,12 @@ k = nLifts(A, X.N, u)
         Rx = convert(X, Rp)
         Tx = Rx*Rx
         Mx = Cx*Tx
-@show        Mp = convert(P, Mx)
+@time        Mp = convert(P, Mx)
 
         Px = convert(X, Pp)
         Ux = Rx*Px
         Nx = Ux*Cx
-@show        Np = convert(P, Nx)
+        Np = convert(P, Nx)
        
     end
     return false
@@ -514,20 +567,11 @@ end
 
 
 
+
 #TODO
-#
-# convertMx to Mp is neq invmod(A,p), but work proof ??
-# for n=300 sqrt doesn't work 
-# Integer problem
-# "@show" in double plus one can't be removed
+# convertMx to Mp is neq invmod(A,p), but work
 # re-calculate bounds
-# no method matching ^(::fmpz, ::fmpq)
-
-# A=bad_mat(k,300,-1000:1000);
-# @time UniCertNF(A, 100000)
-# convert(fmpz, NaN)
-
-
+# Integrality test of  D*inv(A) doesn't work
 
 #= example
 include("/home/ajantha/Documents/RNS/UniCertNF.jl")
@@ -536,5 +580,7 @@ A=bad_mat(k,50,-1000:1000);
 
 I=identity_matrix(A)
 UniCert(A,I,100000)
+
+=# 
 
 =# 
