@@ -68,7 +68,7 @@ mutable struct RRS <: Hecke.Ring
   Pi::Array{fmpz, 1}
   w::Array{fmpq, 1}
   c::Array{fmpz, 1}  
-  r::fmpz
+#  r::fmpz
   N::fmpz
   ce
 
@@ -78,7 +78,7 @@ mutable struct RRS <: Hecke.Ring
     P = prod(p)
     s.P = [divexact(P, x) for x = p]
     s.Pi = [invmod(s.P[i], s.p[i]) for i = 1:length(p)]
-    s.r = next_prime(2^50)
+#    s.r = next_prime(2^50)
     s.N = P
     s.ce = Hecke.crt_env(p)
     s.w = [s.Pi[i]//s.p[i] for i = 1:length(p)]
@@ -107,18 +107,18 @@ mutable struct RRSelem <: Hecke.RingElem
   function RRSelem(X::RRS, a::fmpz)
     s = new()
     s.x = [mod(a, p) for p = X.p]
-    s.r = mod(a, X.r)
+#    s.r = mod(a, X.r)
     s.R = X
     return s
   end
   function RRSelem(X::RRS, a::Integer)
     return RRSelem(X, fmpz(a))
   end
-  function RRSelem(X::RRS, a::Array{fmpz, 1}, k::fmpz)
+  function RRSelem(X::RRS, a::Array{fmpz, 1})
     r = new()
     r.R = X
     r.x = a
-    r.r = k
+#    r.r = k
     return r
   end
 end
@@ -135,21 +135,21 @@ parent_type(::Type{RRSelem}) = RRS
 
 parent(a::RRSelem) = a.R
 
--(a::RRSelem, b::RRSelem) = RRSelem(a.R, [mod(a.x[i]-b.x[i], a.R.p[i]) for i=1:length(a.x)], mod(a.r-b.r, a.R.r))
-+(a::RRSelem, b::RRSelem) = RRSelem(a.R, [mod(a.x[i]+b.x[i], a.R.p[i]) for i=1:length(a.x)], mod(a.r+b.r, a.R.r))
-*(a::RRSelem, b::RRSelem) = RRSelem(a.R, [mod(a.x[i]*b.x[i], a.R.p[i]) for i=1:length(a.x)], mod(a.r*b.r, a.R.r))
-*(a::Integer, b::RRSelem) = RRSelem(b.R, [mod(a*b.x[i], b.R.p[i]) for i=1:length(b.x)], mod(a*b.r, b.R.r))
-divexact(a::RRSelem, b::RRSelem) = RRSelem(a.R, [mod(a.x[i]*invmod(b.x[i], a.R.p[i]), a.R.p[i]) for i=1:length(a.x)], mod(a.r*invmod(b.r, a.R.r), a.R.r))
--(a::RRSelem) = RRSelem(a.R, [mod(-a.x[i], a.R.p[i]) for i=1:length(a.x)], -a.r)
-^(a::RRSelem, e::Integer) = RRSelem(a.R, [powmod(a.x[i], e, a.R.p[i]) for i=1:length(a.x)], powmod(a.r, e, a.R.r))
-(R::RRS)() = RRSelem(R, fmpz[0 for i=1:length(R.p)], fmpz(0))
-(R::RRS)(a::Integer) = RRSelem(R, a)
-(R::RRS)(a::RRSelem) = a
+-(a::RRSelem, b::RRSelem) = RRSelem(a.R, [mod(a.x[i]-b.x[i], a.R.p[i]) for i=1:length(a.x)])
++(a::RRSelem, b::RRSelem) = RRSelem(a.R, [mod(a.x[i]+b.x[i], a.R.p[i]) for i=1:length(a.x)])
+*(a::RRSelem, b::RRSelem) = RRSelem(a.R, [mod(a.x[i]*b.x[i], a.R.p[i]) for i=1:length(a.x)])
+*(a::Integer, b::RRSelem) = RRSelem(b.R, [mod(a*b.x[i], b.R.p[i]) for i=1:length(b.x)])
+#divexact(a::RRSelem, b::RRSelem) = RRSelem(a.R, [mod(a.x[i]*invmod(b.x[i], a.R.p[i]), a.R.p[i]) for i=1:length(a.x)], mod(a.r*invmod(b.r, a.R.r))
+-(a::RRSelem) = RRSelem(a.R, [mod(-a.x[i], a.R.p[i]) for i=1:length(a.x)])
+#^(a::RRSelem, e::Integer) = RRSelem(a.R, [powmod(a.x[i], e, a.R.p[i]) for i=1:length(a.x)])
+#(R::RRS)() = RRSelem(R, fmpz[0 for i=1:length(R.p)], fmpz(0))
+#(R::RRS)(a::Integer) = RRSelem(R, a)
+#(R::RRS)(a::RRSelem) = a
 
 function addeq!(a::RRSelem, b::RRSelem)
   for i=1:length(a.x)
     a.x[i] = mod(a.x[i] + b.x[i], a.R.p[i])
-    a.r    = mod(a.r    + b.r   , a.R.r)
+#    a.r    = mod(a.r    + b.r   , a.R.r)
   end
   return a
 end
@@ -157,7 +157,7 @@ end
 function mul!(a::RRSelem, b::RRSelem, c::RRSelem)
   for i=1:length(a.x)
     a.x[i] = mod(b.x[i] * c.x[i], a.R.p[i])
-    a.r    = mod(b.r    * c.r   , a.R.r)
+#    a.r    = mod(b.r    * c.r   , a.R.r)
   end
   return a
 end
@@ -188,16 +188,16 @@ mutable struct RRSmat <: Hecke.RingElem
   function RRSmat(X::RRS, a::fmpz_mat)
     s = new()
     s.x = [Hecke.mod_sym(a, p) for p = X.p]
-    s.r = Hecke.mod_sym(a, X.r)
+#    s.r = Hecke.mod_sym(a, X.r)
     s.R = X
     return s
   end
 
-  function RRSmat(X::RRS, a::Array{fmpz_mat,1}, k::fmpz_mat)
+  function RRSmat(X::RRS, a::Array{fmpz_mat,1})
     r = new()
     r.R = X
     r.x = a
-    r.r = k
+#    r.r = k
     return r
   end
 
@@ -214,21 +214,21 @@ parent_type(::Type{RRSmat}) = RRS
 
 parent(a::RRSmat) = a.R 
 
--(a::RRSmat, b::RRSmat) = RRSmat(a.R, [Hecke.mod_sym(a.x[i]-b.x[i], a.R.p[i]) for i=1:length(a.x)], Hecke.mod_sym(a.r-b.r, a.R.r))
-+(a::RRSmat, b::RRSmat) = RRSmat(a.R, [Hecke.mod_sym(a.x[i]+b.x[i], a.R.p[i]) for i=1:length(a.x)], Hecke.mod_sym(a.r+b.r, a.R.r))
-*(a::RRSmat, b::RRSmat) = RRSmat(a.R, [Hecke.mod_sym(a.x[i]*b.x[i], a.R.p[i]) for i=1:length(a.x)], Hecke.mod_sym(a.r*b.r, a.R.r))
-invM(a::RRSmat) = RRSmat(a.R, [modinvM(a.x[i],a.R.p[i]) for i=1:length(a.x)], modinvM(a.r, a.R.r))
-*(a::Integer, b::RRSmat) = RRSmat(b.R, [Hecke.mod_sym(a*b.x[i], b.R.p[i]) for i=1:length(b.x)], Hecke.mod_sym(a*b.r, b.R.r))
--(a::RRSmat) = RRSmat(a.R, [Hecke.mod_sym(-a.x[i], a.R.p[i]) for i=1:length(a.x)], Hecke.mod_sym(-a.r, b.R.r))
-divexact(a::RRSmat, b::fmpz) = RRSmat(a.R, [Hecke.mod_sym(a.x[i]*invmod(b, a.R.p[i]), a.R.p[i]) for i=1:length(a.x)], Hecke.mod_sym(a.r*invmod(b, a.R.r), a.R.r))
+-(a::RRSmat, b::RRSmat) = RRSmat(a.R, [Hecke.mod_sym(a.x[i]-b.x[i], a.R.p[i]) for i=1:length(a.x)])
++(a::RRSmat, b::RRSmat) = RRSmat(a.R, [Hecke.mod_sym(a.x[i]+b.x[i], a.R.p[i]) for i=1:length(a.x)])
+*(a::RRSmat, b::RRSmat) = RRSmat(a.R, [Hecke.mod_sym(a.x[i]*b.x[i], a.R.p[i]) for i=1:length(a.x)])
+invM(a::RRSmat) = RRSmat(a.R, [modinvM(a.x[i],a.R.p[i]) for i=1:length(a.x)])
+*(a::Integer, b::RRSmat) = RRSmat(b.R, [Hecke.mod_sym(a*b.x[i], b.R.p[i]) for i=1:length(b.x)])
+-(a::RRSmat) = RRSmat(a.R, [Hecke.mod_sym(-a.x[i], a.R.p[i]) for i=1:length(a.x)])
+divexact(a::RRSmat, b::fmpz) = RRSmat(a.R, [Hecke.mod_sym(a.x[i]*invmod(b, a.R.p[i]), a.R.p[i]) for i=1:length(a.x)])
 
 # converter base of "a": a.R to B
-convert(B::RRS, a::RRSmat) = RRSmat(B, [extend(a.R , a , B.p[i]) for i = 1: length(B.p)], a.r )
+convert(B::RRS, a::RRSmat) = RRSmat(B, [extend(a.R , a , B.p[i]) for i = 1: length(B.p)] )
 
-QuadLift( A::RRSmat, M::RRSmat, T::RRSmat, iX :: Array{fmpz,1}, iXr :: fmpz) = RRSmat(A.R, [Hecke.mod_sym(iX[i]*(T.x[i]-A.x[i]*M.x[i]), A.R.p[i]) for i=1:length(A.x)], Hecke.mod_sym(iXr*(T.r - A.r*M.r), A.R.r))
+QuadLift( A::RRSmat, M::RRSmat, T::RRSmat, iX :: Array{fmpz,1}) = RRSmat(A.R, [Hecke.mod_sym(iX[i]*(T.x[i]-A.x[i]*M.x[i]), A.R.p[i]) for i=1:length(A.x)])
 
-identM(a::RRSmat) = RRSmat(a.R, [identity_matrix(a.x[i]) for i=1:length(a.x)], identity_matrix(a.r))
-zeroM(a::RRSmat) = RRSmat(a.R, [similar(a.x[i]) for i=1:length(a.x)], similar(a.r))
+identM(a::RRSmat) = RRSmat(a.R, [identity_matrix(a.x[i]) for i=1:length(a.x)])
+zeroM(a::RRSmat) = RRSmat(a.R, [similar(a.x[i]) for i=1:length(a.x)])
 
 function iszeroM(a::RRSmat)
   i = 1
@@ -244,28 +244,12 @@ function iszeroM(a::RRSmat)
   end
 end
 
-# extend for symmetric residue
-function extendTwo(R::RRS, a::RRSmat, p::fmpz)
-  k = sum((Hecke.mod_sym(a.x[i]*R.Pi[i] , R.p[i])) *Hecke.mod_sym(R.P[i] , R.r) for i=1:length(R.p)) - a.r
- @show k =Hecke.mod_sym(k* Hecke.mod_sym(invmod(R.N, R.r),R.r), R.r)
-#  @assert k <= length(R.p)
-  return Hecke.mod_sym((sum(Hecke.mod_sym((a.x[i]*R.Pi[i]), R.p[i]) * Hecke.mod_sym(R.P[i], p) for i=1:length(R.p)) - k*Hecke.mod_sym(R.N , p)),p)
-end
-
-
-function extendOne(R::RRS, a::RRSmat, p::fmpz)
-  k = sum((mod(a.x[i]*R.Pi[i] , R.p[i])) * mod(R.P[i] , R.r) for i=1:length(R.p)) - a.r
-  k = mod(k*invmod(R.N, R.r), R.r)
-#  @assert k <= length(R.p)
-  return mod((sum(mod((a.x[i]*R.Pi[i]), R.p[i]) * mod(R.P[i], p) for i=1:length(R.p)) - k*mod(R.N , p)),p)
-end
-
 
 # extend for symmetric residue Correct
 function extend(R::RRS, a::RRSmat, p::fmpz)
   corr =round_mat_fz(sum(mat_mul_fq(a.x[i], R.w[i]) for i=1:length(R.p)))         
   k = -Hecke.mod_sym(R.N,p)
-  ap = sum(Hecke.mod_sym(R.c[i], p)*a.x[i] for i=1:length(R.p)) # mod_sym
+  ap = sum(Hecke.mod_sym(R.c[i], p)*a.x[i] for i=1:length(R.p)) 
   ap = Hecke.mod_sym(ap + k*corr, p)
   return ap 
 end
@@ -356,7 +340,7 @@ end
 
 function UniCertZ(A::fmpz_mat)
 n = nrows(A)
-p0 = p_start_mat(A) #fmpz(103)# example C
+p0 = fmpz(500)#p_start_mat(A) #fmpz(103)# example C
 PB, XB = PXbounds(A) # fmpz(663), fmpz(5979) #example C
 P, np = genPrimes(p0, PB)
 # C -code use np-1
@@ -369,28 +353,32 @@ iX = Array(ZZ,np)
   for i = 1 : np
     iX[i] = invmod(X.N, P.p[i])  
   end
-  iXr = invmod(X.N, X.r)
 
-    Ap = RRSmat(P, A)
+@time    Ap = RRSmat(P, A)
     Ax = RRSmat(X, A)
 #TODO C-code check existence of inverse
-    Cx = invM(Ax)
+println("inv")
+@time    Cx = invM(Ax)
     Rp = identM(Ap)
     Mx = Cx
-    Mp = convert(P, Mx)
+println("convert 1")
+@time    Mp = convert(P, Mx)
 
     for i = 1 : k
 @show i
-      Tp = Rp*Rp
-      Rp = QuadLift(Ap, Mp, Tp, iX, iXr)
+println("T mult")
+@time      Tp = Rp*Rp
+println("quad")
+@time      Rp = QuadLift(Ap, Mp, Tp, iX)
       if iszeroM(Rp)
         return true
       end
-      Rx = convert(X, Rp)
-      Tx = Rx*Rx
-      Mx = Cx*Tx
-#TODO Removing @show here gives an UndefRefError: access to undefined reference??
-@show       Mp = convert(P, Mx)
+println("convert 2")
+ @time     Rx = convert(X, Rp)
+ @time     Tx = Rx*Rx
+ @time     Mx = Cx*Tx
+println("convert 3")
+ @time     Mp = convert(P, Mx)
     end
     return false
 end
@@ -398,6 +386,7 @@ end
 
 
 #= example
+Fast without GF
 include("/home/ajantha/Documents/RNS/UniCertRNS.jl")
 A=RandUpperMatZ(6,1000:(100^4));
 A=bad_mat(ZZ,100,-1000:1000);
