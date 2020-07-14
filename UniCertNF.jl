@@ -491,7 +491,8 @@ println("convert")
 println("Double_lift")
 
 @time       Rp = QuadLift(Ap, Mp, Tp, iX)      
-            if iszeroM(Rp)
+            if iszeroM(Rp)  
+                return true
             end
 println("convert1")
 @time        Rx = convert(X, Rp)
