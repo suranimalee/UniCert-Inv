@@ -77,8 +77,8 @@ mutable struct RNS <: Hecke.Ring
   p::Array{fmpz, 1}
   P::Array{fmpz, 1}
   Pi::Array{fmpz, 1}
-#  w::Array{fmpq, 1}
-#  c::Array{fmpz, 1} 
+  w::Array{fmpq, 1}
+  c::Array{fmpz, 1} 
   F::Array{Hecke.AbsOrdQuoRing{NfAbsOrd{AnticNumberField,nf_elem},NfAbsOrdIdl{AnticNumberField,nf_elem}}, 1} 
 #  r::fmpz
   N::fmpz
@@ -95,8 +95,8 @@ mutable struct RNS <: Hecke.Ring
 #    s.r = next_prime(2^50)
     s.N = P
     s.ce = Hecke.crt_env(p)
-#    s.w = [s.Pi[i]//s.p[i] for i = 1:length(p)]
-#    s.c = [s.P[i]*s.Pi[i] for i = 1:length(p)]
+    s.w = [s.Pi[i]//s.p[i] for i = 1:length(p)]
+    s.c = [s.P[i]*s.Pi[i] for i = 1:length(p)]
     s.F = [ResidueRing(zk,prime_decomposition(zk,s.p[i])[1][1]) for i = 1:length(p) ]
     return s
   end
