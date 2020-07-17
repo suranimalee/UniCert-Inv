@@ -406,10 +406,10 @@ end
 # extend for symmetric residue
 function extend_round(K::AnticNumberField, B::RNS, a::RNSmat )
     R = a.R
-    corr = round_coeff(sum(mat_mul_fq(K, preimageM(R.F[i][2],a.x[i]), R.w[i]) for i=1:length(R.p)), B.O)         
+    corr = round_coeff(sum(mat_mul_fq(K, preimageM(R.F[i],a.x[i]), R.w[i]) for i=1:length(R.p)), B.O)         
   # k = -Hecke.mod_sym(R.N, p)
-    ap = sum(R.c[i]*preimageM(R.F[i][2],a.x[i]) for i=1:length(R.p))
-    aB = [imageM(B.F[j][2], ap-(Hecke.mod_sym(R.N, B.p[j]))*corr) for j=1:length(B.p)]
+    ap = sum(R.c[i]*preimageM(R.F[i],a.x[i]) for i=1:length(R.p))
+    aB = [imageM(B.F[j], ap-(Hecke.mod_sym(R.N, B.p[j]))*corr) for j=1:length(B.p)]
     return aB 
 end
 
@@ -418,8 +418,6 @@ end
 convert(K::AnticNumberField, B::RNS, a::RNSmat) = RNSmat(B, extend_round(K, B, a))
 #TODO while using approximation based convert, add weight w and c to the RNS
 # add K to the convert in the UniCertNF: convert(K,B,a)
-
-
 
 ###########################################################################################
 #
