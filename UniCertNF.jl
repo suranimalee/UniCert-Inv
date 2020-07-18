@@ -509,7 +509,71 @@ println("convert2")
 end
 
 
-#TODO check
+# UniCert Solver
+# Integrality test of  D*inv(A) Work
+function UniCertFast(A::Generic.Mat{nf_elem}, B::Generic.Mat{nf_elem}, u::Int64)
+n = nrows(A)
+K = Hecke.base_ring(A)
+zk= lll(maximal_order(K))
+c1,c2=norm_change_const(zk)
+d = degree(K)
+p0 = fmpz(1000)#p_start_mat(A) #fmpz(100) 
+PB, XB = PXbounds(A, u)
+println("prime gen")
+@time begin
+@show P, np = genPrimes(p0, PB)
+@show X, nx = genPrimes(P[np], XB)
+end
+
+P = RNS(P)
+X = RNS(X)
+k = nLifts(A, X.N, u)
+
+    iX = Array(ZZ,np)
+    for i = 1 : np
+       iX[i] = invmod(X.N, P.p[i])  
+    end
+
+        Ap = RNSmat(P, A)
+        Ax = RNSmat(X, A)
+#TODO C-code check existence
+println("inv")
+@time   Cx = invM(Ax)
+        Rp = identM(Ap)
+
+        Bp = RNSmat(P, B)
+        Bx = RNSmat(X, B)
+        bx = invM(Bx)
+
+
+        Mx = Bx*Cx
+println("convert")
+@time   Mp = convert(P, Mx)
+        Tp = Bp
+
+    for i = 1:k+5
+@show i
+       
+println("Double_lift")
+@time       Rp = QuadLift(Mp, Ap, Tp, iX)      
+            if iszeroM(Rp)  
+                return true
+            end
+println("convert1")
+@time             Rx = convert(X, Rp)
+println("mult")
+@time             Tx = Rx*Rx
+                  Tx = Tx*bx
+@time             Mx = Tx*Cx
+println("convert2")
+@time             Mp = convert(P, Mx)
+                  Tp = Rp*Rp
+    end
+    return false
+
+end
+
+
 # Integrality test of  D*inv(A) 
 function UniCert(A::Generic.Mat{nf_elem}, D::Generic.Mat{nf_elem}, u::Int64)
 n = nrows(A)
@@ -541,12 +605,11 @@ k = nLifts(A, X.N, u)
     Pp = Dp
     Nx = Dx*Cx
     Np = convert(P, Nx)    
-
     for i = 1:k+5
 @show i
         Tp = Rp*Rp
-        Rp = QuadLift(Ap, Mp, Tp, iX) 
         Up = Rp*Pp
+        Rp = QuadLift(Ap, Mp, Tp, iX) 
         Pp = QuadLift(Np, Ap, Up, iX)     
             if iszeroM(Pp)
                 return true
@@ -560,19 +623,17 @@ k = nLifts(A, X.N, u)
         Ux = Rx*Px
         Nx = Ux*Cx
         Np = convert(P, Nx)
-       
+        
     end
     return false
 
 end
 
 
-
-
 #TODO
-# convertMx to Mp is neq invmod(A,p), but work
 # re-calculate bounds
-# Integrality test of  D*inv(A) doesn't work
+# Integrality test work for both D*inv(A) or inv(A)*D fix it  
+
 
 #= example
 include("/home/ajantha/Documents/RNS/UniCertNF.jl")
