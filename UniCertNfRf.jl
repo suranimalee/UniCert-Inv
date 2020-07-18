@@ -77,8 +77,8 @@ mutable struct RNS <: Hecke.Ring
   p::Array{fmpz, 1}
   P::Array{fmpz, 1}
   Pi::Array{fmpz, 1}
-#  w::Array{fmpq, 1}
-#  c::Array{fmpz, 1} 
+  w::Array{fmpq, 1}
+  c::Array{fmpz, 1} 
   F::Array{Tuple{FqFiniteField,Hecke.NfOrdToFqMor}, 1} 
 #  r::fmpz
   N::fmpz
@@ -95,8 +95,8 @@ mutable struct RNS <: Hecke.Ring
 #    s.r = next_prime(2^50)
     s.N = P
     s.ce = Hecke.crt_env(p)
-#    s.w = [s.Pi[i]//s.p[i] for i = 1:length(p)]
-#    s.c = [s.P[i]*s.Pi[i] for i = 1:length(p)]
+    s.w = [s.Pi[i]//s.p[i] for i = 1:length(p)]
+    s.c = [s.P[i]*s.Pi[i] for i = 1:length(p)]
     s.F = [ResidueField(zk,prime_decomposition(zk,s.p[i])[1][1]) for i = 1:length(p) ]
     return s
   end
@@ -363,7 +363,8 @@ end
 
 
 # converter base of "a": a.R to B
-convert(B::RNS, a::RNSmat) = RNSmat(B, extend_mix(B, a) )
+ convert(B::RNS, a::RNSmat) = RNSmat(B, extend_mix(B, a) )
+#TODO while using mixed radix convert, weight w and c can be removed from the RNS
 
 
 #############################################
@@ -410,10 +411,10 @@ function extend_round(K::AnticNumberField, B::RNS, a::RNSmat )
 end
 
 
+
 # converter base of "a": a.R to B 
-convert(K::AnticNumberField, B::RNS, a::RNSmat) = RNSmat(B, extend_round(K, B, a))
+# convert(B::RNS, a::RNSmat) = RNSmat(B, extend_round(nf(B.O), B, a))
 #TODO while using approximation based convert, add weight w and c to the RNS
-# add K to the convert in the UniCertNF: convert(K,B,a)
 
 
 
