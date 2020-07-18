@@ -603,8 +603,8 @@ k = nLifts(A, X.N, u)
     for i = 1:k+5
 @show i
         Tp = Rp*Rp
-        Rp = QuadLift(Ap, Mp, Tp, iX) 
         Up = Rp*Pp
+        Rp = QuadLift(Ap, Mp, Tp, iX) 
         Pp = QuadLift(Np, Ap, Up, iX)     
             if iszeroM(Pp)
                 return true
