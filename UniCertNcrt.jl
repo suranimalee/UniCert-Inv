@@ -594,4 +594,19 @@ S=RNS(zk,L);
 As=RNSmat(S,A)
 crt_RNSmat(As)
 
+#CRT Test
+zk=maximal_order(k);
+L=[1009,997, 991, 983];
+S=RNS(zk,L);
+As=RNSmat(S,A)
+crt_RNSmat(As)
+
+
+L=[10007, 10037, 10163, 10211,1009,997, 991, 983];
+S=RNS(zk,L);
+As=RNSmat(S,A);
+iA=invM(As);
+crt_RNSmat(iA)
+inv(A)
+
 =# 
