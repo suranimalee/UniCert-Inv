@@ -33,28 +33,6 @@ z = zero_matrix(R, n, n)
 end
 
 
-function modsM(A::Generic.Mat{nf_elem}, m::fmpz)
-K = base_ring(A)
-B = zero_matrix(K,nrows(A),ncols(A))
-    for i=1:nrows(A)
-        for j=1:ncols(A)
-            B[i,j] = Hecke.mod_sym(A[i, j], m)
-        end
-    end
-    return B
-end
-
-
-function invmodM(A::Generic.MatSpaceElem{nf_elem}, p::fmpz)
-    k = base_ring(A)
-    me = Hecke.modular_init(k, fmpz(p))
-    ap = Hecke.modular_proj(A, me)
-    ap = [inv(x) for x= ap]
-    B = Hecke.modular_lift(ap, me)
-    return B
-end
-
-
 
 ###################################################################
 #
@@ -139,93 +117,6 @@ mutable struct RNSnf_elem <: Hecke.RingElem
 end
 
 
-
-function Base.show(io::IO, a::RNSnf_elem)
-  print(io, "crt: ", a.x)
-end
-
-elem_type(::RNS) = RNSnf_elem
-parent_type(::RNSnf_elem) = RNS
-parent_type(::Type{RNSnf_elem}) = RNS
-
-parent(a::RNSnf_elem) = a.R
-
--(a::RNSnf_elem, b::RNSnf_elem) = RNSnf_elem(a.R, [mod(a.x[i]-b.x[i], a.R.p[i]) for i=1:length(a.x)], mod(a.r-b.r, a.R.r))
-+(a::RNSnf_elem, b::RNSnf_elem) = RNSnf_elem(a.R, [mod(a.x[i]+b.x[i], a.R.p[i]) for i=1:length(a.x)], mod(a.r+b.r, a.R.r))
-*(a::RNSnf_elem, b::RNSnf_elem) = RNSnf_elem(a.R, [mod(a.x[i]*b.x[i], a.R.p[i]) for i=1:length(a.x)], mod(a.r*b.r, a.R.r))
-*(a::Integer, b::RNSnf_elem) = RNSnf_elem(b.R, [mod(a*b.x[i], b.R.p[i]) for i=1:length(b.x)], mod(a*b.r, b.R.r))
-divexact(a::RNSnf_elem, b::RNSnf_elem) = RNSnf_elem(a.R, [mod(a.x[i]*invmod(b.x[i], a.R.p[i]), a.R.p[i]) for i=1:length(a.x)], mod(a.r*invmod(b.r, a.R.r), a.R.r))
--(a::RNSnf_elem) = RNSnf_elem(a.R, [mod(-a.x[i], a.R.p[i]) for i=1:length(a.x)], -a.r)
-#^(a::RNSnf_elem, e::Integer) = RNS_nfelem(a.R, [powmod(a.x[i], e, a.R.p[i]) for i=1:length(a.x)], powmod(a.r, e, a.R.r))
-(R::RNS)() = RNSnf_elem(R, fmpz[0 for i=1:length(R.p)], fmpz(0))
-(R::RNS)(a::Integer) = RNSnf_elem(R, a)
-(R::RNS)(a::RNSnf_elem) = a
-
-function addeq!(a::RNSnf_elem, b::RNSnf_elem)
-  for i=1:length(a.x)
-    a.x[i] = mod(a.x[i] + b.x[i], a.R.p[i])
-    a.r    = mod(a.r    + b.r   , a.R.r)
-  end
-  return a
-end
-
-function mul!(a::RNSnf_elem, b::RNSnf_elem, c::RNSnf_elem)
-  for i=1:length(a.x)
-    a.x[i] = mod(b.x[i] * c.x[i], a.R.p[i])
-    a.r    = mod(b.r    * c.r   , a.R.r)
-  end
-  return a
-end
-
-function check(a::RNSnf_elem)
-    z = fmpz(a)
-  @assert mod(z, a.R.r) == a.r
-end
-
-#TODO use idempotents for extend
-# given x mod p_i and p_r, find x mod p 
-function extend(R::RNS, a::RNSnf_elem, p::fmpz)
-  k = sum((mod(a.x[i]*R.Pi[i] , R.p[i])) * mod(R.P[i] , R.r) for i=1:length(R.p)) - a.r
-  k = mod(k*invmod(R.N, R.r), R.r)
-#  @assert k <= length(R.p)
-  return mod((sum(mod((a.x[i]*R.Pi[i]), R.p[i]) * mod(R.P[i], p) for i=1:length(R.p)) - k*mod(R.N , p)),p)
-end
-
-function mixed_radix(R::RNS, a::RNSnf_elem, li::Int = typemax(Int))
-A = nf_elem[]
-    for i=1:min(length(a.x), li)
-        y = a.x[i]
-    for j=1:i-1
-        y = mod(((y-A[j])*invmod(R.p[j], R.p[i])), R.p[i])
-    end
-    push!(A, y)
-  end
-  return A
-  #so a = A[1] + A[2]*p[1] + A[3]*p[1]*p[2] ...s
-end
-
-function rss_elem_from_radix(R::RNS, a::Array{nf_elem, 1})
-z = nf_elem[]
-q = fmpz(1)
-    for i=1:length(R.p)
-        push!(z, q*x[i])
-        q *=R.p[i]
-    end
-    return z
-# for reconstruction: take sum(z)
-end
-
-
-function gen(R::RNS, i::Int)
-    p = fmpz[0 for i=1:length(R.p)]
-    p[i] = fmpz(1)
-    r = mod(R.P[i]*R.Pi[i], R.r)
-    return RNSnf_elem(R, p, r)
-end
-
-Hecke.fmpz(a::RNSnf_elem) = Hecke.crt(a.x, a.R.ce)
-
-
 ###################################################################
 #
 #            RNS for matrices over number fields
@@ -252,6 +143,9 @@ a = zero_matrix(domain(mF), nrows(A), ncols(A))
    end
 return a
 end
+
+
+
 
 
 mutable struct RNSmat <: Hecke.RingElem
@@ -299,7 +193,8 @@ invM(a::RNSmat) = RNSmat(a.R, [inv(a.x[i]) for i=1:length(a.x)])
 
 -(a::RNSmat) = RNSmat(a.R, [-a.x[i] for i=1:length(a.x)])
 
-QuadLift( A::RNSmat, M::RNSmat, T::RNSmat, iX :: Array{fmpz,1}) = RNSmat(A.R, [iX[i]*(T.x[i]-A.x[i]*M.x[i]) for i=1:length(A.x)])
+#QuadLift( A::RNSmat, M::RNSmat, T::RNSmat, iX :: Array{fmpz,1}) = RNSmat(A.R, [iX[i]*(T.x[i]-A.x[i]*M.x[i]) for i=1:length(A.x)])
+QuadLift( A::RNSmat, M::RNSmat, T::RNSmat, iX :: Array{Any,1}) = RNSmat(A.R, [iX[i]*(T.x[i]-A.x[i]*M.x[i]) for i=1:length(A.x)])
 
 identM(a::RNSmat) = RNSmat(a.R, [identity_matrix(a.x[i]) for i=1:length(a.x)])
 zeroM(a::RNSmat) = RNSmat(a.R, [similar(a.x[i]) for i=1:length(a.x)])
@@ -319,7 +214,68 @@ i = 1
 end
 
 
+
+############################################
+#       convert: Using CRT
+############################################
+
+
+function crt_recon(A::NfOrdIdl, a::NfOrdElem, B::NfOrdIdl, b::NfOrdElem )
+zk = parent(a)     
+v,u=idempotents(A,B)   
+de=  a*u+b*v
+D = A*B
+T1 = lll(basis_matrix(D))
+U = matrix(FlintQQ,degree(zk),degree(zk),array_mat(T1))
+TT = coordinates(de)
+V =matrix(FlintQQ,degree(zk),1,TT)
+W = Hecke.solve(U',V)
+F = []
+k=0
+    for i=1:nrows(T1)
+        push!(F, order(D)([T1[i,j] for j=1:ncols(T1)]))
+    end
+
+    for j=1:degree(zk)
+        k += F[j]*(round(BigInt, Rational{BigInt}(W[j,1])))
+    end
+    return de= de-k
+end
+
+
+function crt_recon_mat(A::NfOrdIdl, a::Generic.MatSpaceElem{NfAbsOrdElem{AnticNumberField,nf_elem}}, B::NfOrdIdl, b::Generic.MatSpaceElem{NfAbsOrdElem{AnticNumberField,nf_elem}} )
+zk = base_ring(a)
+C=zero_matrix(zk,nrows(a),ncols(a))
+
+    for i=1:nrows(a)
+        for j=1:ncols(a)
+             C[i,j] = crt_recon(A, a[i,j], B,b[i,j])
+        end
+    end
+return C
+end
+
+
+function crt_RNSmat(a::RNSmat)
+R = a.R
+x = [preimageM(R.F[i][2],a.x[i]) for i=1:length(a.x)]
+zk = base_ring(x[1])
+D = prime_decomposition(zk,R.p[1])[1][1]
+I = x[1]
+    for i = 2:length(x)
+        lp = prime_decomposition(zk,R.p[i])[1][1]   
+        I = crt_recon_mat(D, I, lp, x[i])
+        D = D*lp
+    end
+   return I
+end
+
+convert(B::RNS, a::RNSmat) = RNSmat(B, [imageM(B.F[i][2], crt_RNSmat(a)) for i=1:length(B.p)] )
+
+
+
 #given x mod p_i and p_r, find x mod p
+#TODO Not Work for ResidueFiels
 ############################################
 #       convert: Mixed radix base extension
 ############################################
@@ -329,7 +285,8 @@ A = Generic.MatSpaceElem{NfAbsOrdElem{AnticNumberField,nf_elem}}[]
     for i=1:length(a.x)
         y = a.x[i]
         for j=1:i-1
-            y = invmod(R.p[j], R.p[i])*(y-imageM(R.F[i][2], A[j]))
+            #y = invmod(R.p[j], R.p[i])*(y-imageM(R.F[i][2], A[j]))
+            y = inv(R.F[i][2](zk(R.p[j])))*(y-imageM(R.F[i][2], A[j]))
         end
         push!(A, preimageM(R.F[i][2],y))
       #  push!(A, y)
@@ -363,10 +320,10 @@ end
 
 
 # converter base of "a": a.R to B
- convert(B::RNS, a::RNSmat) = RNSmat(B, extend_mix(B, a) )
+# convert(B::RNS, a::RNSmat) = RNSmat(B, extend_mix(B, a) )
 #TODO while using mixed radix convert, weight w and c can be removed from the RNS
 
-
+#TODO Not Work for ResidueFiels
 #############################################
 #       convert: Approximated base extension
 #############################################
@@ -411,10 +368,10 @@ function extend_round(K::AnticNumberField, B::RNS, a::RNSmat )
 end
 
 
-
 # converter base of "a": a.R to B 
 # convert(B::RNS, a::RNSmat) = RNSmat(B, extend_round(nf(B.O), B, a))
 #TODO while using approximation based convert, add weight w and c to the RNS
+
 
 
 
@@ -519,18 +476,18 @@ p0 = fmpz(1000)# p_start_mat(A) #fmpz(100)
 @show PB, XB = PXbounds(A, u)
 println("prime gen")
 @time begin
-@show P, np = genPrimes(p0, PB)
+@show P, np = genPrimes(p0, PB)# [fmpz(1013), fmpz(1009),fmpz(997), fmpz(991), fmpz(983)], 5#
 @show X, nx = genPrimes(P[np], XB)
 end
  P = RNS(zk, P)
  X = RNS(zk, X)
 k = nLifts(A, X.N, u)
 
-    iX = Array(ZZ,np)
+    
+    iX=[]
     for i = 1 : np
-       iX[i] = invmod(X.N, P.p[i])  
+        push!(iX, inv(P.F[i][2](zk(X.N))) )  
     end
-
         Ap = RNSmat(P, A)
         Ax = RNSmat(X, A)
 #TODO C-code check existence
@@ -539,27 +496,25 @@ println("inv")
         Rp = identM(Ap)
         Mx = Cx
 println("convert")
-@time   Mp = convert(P, Mx)
+@show   Mp = convert(P, Mx)
 
     for i = 1:k+5
 @show i
 println("T-mult")
-@time         Tp = Rp*Rp
+            Tp = Rp*Rp
 println("Double_lift")
 
-@time       Rp = QuadLift(Ap, Mp, Tp, iX)      
+@show       Rp = QuadLift(Ap, Mp, Tp, iX)      
             if iszeroM(Rp)
                 return true
-            #   else
-            #continue
             end
 println("convert 1")
-@time        Rx = convert(X, Rp)
+        Rx = convert(X, Rp)
 println("mult")
-@time        Tx = Rx*Rx
-@time        Mx = Cx*Tx
+        Tx = Rx*Rx
+        Mx = Cx*Tx
 println("convert 2")
-@time        Mp = convert(P, Mx)
+        Mp = convert(P, Mx)
 
     end
     return false
@@ -568,7 +523,6 @@ end
 
 
 
-#TODO check with UnimodularCert/UniCertZK.jl interchange UC and AN
 # Integrality test of  D*inv(A) 
 function UniCert(A::Generic.Mat{nf_elem}, D::Generic.Mat{nf_elem}, u::Int64)
 n = nrows(A)
@@ -627,11 +581,11 @@ end
 
 
 #= example
-include("/home/ajantha/Documents/RNS/UniCertNFGit.jl")
-A=bad_mat(k,50,-1000:1000);
-@time UniCertNF(A, 100000)
+Zx,x=FlintZZ["x"]
+k,a=number_field(x^3+7x+1)
+A=matrix(k,3,3,[-71*a^2 + 12*a - 91,  -14464*a^2 + 22982*a - 4279,  40281*a^2 - 11436*a + 2503, 1, -21*a^2 + 53*a + 92, 0,0,1,96*a^2 + 95*a + 88])
+include("/home/ajantha/Documents/RNS/UniCertCRT.jl")
+UniCertNF(A, 10000000000)
 
-I=identity_matrix(A)
-UniCert(A,I,100000)
 
 =# 
