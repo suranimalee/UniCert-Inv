@@ -587,5 +587,11 @@ A=matrix(k,3,3,[-71*a^2 + 12*a - 91,  -14464*a^2 + 22982*a - 4279,  40281*a^2 - 
 include("/home/ajantha/Documents/RNS/UniCertCRT.jl")
 UniCertNF(A, 10000000000)
 
+#CRT Test
+zk=maximal_order(k);
+L=[1009,997, 991, 983];
+S=RNS(zk,L);
+As=RNSmat(S,A)
+crt_RNSmat(As)
 
 =# 
