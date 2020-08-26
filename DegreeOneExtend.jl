@@ -324,9 +324,9 @@ end
 function extend_round(K::AnticNumberField, B::RNS, a::RNSmat )
     R = a.R
     corr = round_coeff(sum(mat_mul_fq(K, preimageM(R.f[i],a.x[i]), R.w[i]) for i=1:length(R.p)), B.O)         
-  # k = -Hecke.mod_sym(R.N, p)
-    ap = sum(R.c[i]*preimageM(R.f[i],a.x[i]) for i=1:length(R.p))
-    aB = [imageM(B.f[j], ap-(Hecke.mod_sym(R.N, B.p[j]))*corr) for j=1:length(B.p)]
+ #   ap = sum(R.c[i]*preimageM(R.f[i],a.x[i]) for i=1:length(R.p))
+ #   aB = [imageM(B.f[j], ap-(Hecke.mod_sym(R.N, B.p[j]))*corr) for j=1:length(B.p)]
+    aB = [imageM(B.f[j], (sum(mod(R.c[i],B.p[j])*preimageM(R.f[i],a.x[i]) for i=1:length(R.p)))-(mod(R.N, B.p[j]))*corr) for j=1:length(B.p)]
     return aB 
 end
 
