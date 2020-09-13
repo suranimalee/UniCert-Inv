@@ -349,9 +349,11 @@ end
 function ExtendEnv(B::RNS, a::RNSmat) 
 A = Generic.MatSpaceElem{nf_elem}[]
 R = a.R
+@time begin
   for i=1:length(a.m)
     push!(A, modular_Glift(a.m[i], R.me[i]))
   end
+end
 L = Generic.MatSpaceElem{nf_elem}[]
   for i=1:length(A)
     y = A[i]
@@ -367,10 +369,13 @@ q = fmpz(1)
     q *=R.p[i]
   end
 zz = []
+@time begin
   for i = 1: length(B.p)
-    M = sum(modsM(L[j], B.p[i]) for j = 1:length(L))
+    # @time M = sum(modsM(L[j], B.p[i]) for j = 1:length(L))
+    M = sum(L[j] for j = 1:length(L))   
     push!(zz, modular_Gproj(M, B.me[i]))
   end 
+end
     return zz
 end
 
