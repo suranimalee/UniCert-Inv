@@ -84,8 +84,18 @@ end
 # Given an algebraic number $a$ and data \code{me} as computed by \code{modular_Ginit}, project $a$ onto the residue class fields.
 
 function modular_Gproj(a::nf_elem, me::modular_Genv)
+  ap = me.Fpx(a)
+  Hecke.crt_inv!(me.rp, ap, me.ce)
   for i=1:me.ce.n
-    me.res[i] = me.F[i](a)
+#    F = me.fld[i]
+#    if isassigned(me.res, i)
+#      u = me.res[i]
+#    else
+#      u = F()
+#    end
+#    me.res[i] = u 
+     me.res[i] = coeff(me.rp[i], 0)
+#    me.res[i] = me.F[i](a)
   end
   return me.res
 end
@@ -349,11 +359,12 @@ end
 function ExtendEnv(B::RNS, a::RNSmat) 
 A = Generic.MatSpaceElem{nf_elem}[]
 R = a.R
-@time begin
+#@time begin
   for i=1:length(a.m)
     push!(A, modular_Glift(a.m[i], R.me[i]))
   end
-end
+#end
+#@time begin
 L = Generic.MatSpaceElem{nf_elem}[]
   for i=1:length(A)
     y = A[i]
@@ -363,19 +374,20 @@ L = Generic.MatSpaceElem{nf_elem}[]
     end
     push!(L, y)
   end
+#end
 q = fmpz(1)
   for i=1:length(R.p)
     L[i] = q*L[i]
     q *=R.p[i]
   end
 zz = []
-@time begin
+#@time begin
   for i = 1: length(B.p)
-    # @time M = sum(modsM(L[j], B.p[i]) for j = 1:length(L))
-    M = sum(L[j] for j = 1:length(L))   
-    push!(zz, modular_Gproj(M, B.me[i]))
+    # @time M = sum(modsM(L[j], B.p[i]) for j = 1:length(L)) #both works
+     M = sum(L[j] for j = 1:length(L))   
+     push!(zz, modular_Gproj(M, B.me[i]))
   end 
-end
+#end
     return zz
 end
 
@@ -420,9 +432,11 @@ end
 
 function extend_round(R::RNS, a::RNSmat, p::fmpz)
   A = Generic.MatSpaceElem{nf_elem}[]
+@time begin
     for i=1:length(a.m)
       push!(A, modular_Glift(a.m[i],R.me[i]))
     end
+end
     corr =round_coeff(sum(mat_mul_fq(A[i], R.w[i]) for i=1:length(R.p)))         
     k = -Hecke.mod_sym(R.N, p)
     ap = sum(Hecke.mod_sym(R.c[i], p)*A[i] for i=1:length(R.p))  
@@ -430,7 +444,7 @@ function extend_round(R::RNS, a::RNSmat, p::fmpz)
     return ap 
 end
 
-# convert(B::RNS, a::RNSmat) = RNSmat(B, [modular_Gproj(extend_round(a.R , a , B.p[i]), B.me[i]) for i = 1: length(B.p)])
+ #convert(B::RNS, a::RNSmat) = RNSmat(B, [modular_Gproj(extend_round(a.R , a , B.p[i]), B.me[i]) for i = 1: length(B.p)])
 
 
 
@@ -546,8 +560,8 @@ end
 function UniCertNF(A::Generic.Mat{nf_elem},  p_start::Int64, u::Int64)
   n = nrows(A)
   K = Hecke.base_ring(A)
-  zk= lll(maximal_order(K))
-  c1,c2=norm_change_const(zk)
+  zk = lll(maximal_order(K))
+  c1,c2 = norm_change_const(zk)
   d = degree(K)
   # p0 = p_start_mat(A) 
   PB, XB = PXbounds(A, u, c1, c2)
@@ -576,7 +590,7 @@ println("inv")
 println("convert")
         Mp = convert(P, Mx)
 
-        for i = 1 : k+3
+        for i = 1 : k
 @show i
 @time     Tp = Rp*Rp
 println("Double_lift")
@@ -595,6 +609,67 @@ println("convert2")
 
         end
       return false
+end
+
+
+################################################
+
+
+
+# Integrality test of  D*inv(A) 
+function UniCert(A::Generic.Mat{nf_elem}, D::Generic.Mat{nf_elem}, p_start::Int64, u::Int64)
+n = nrows(A)
+K = Hecke.base_ring(A)
+zk = lll(maximal_order(K))
+c1,c2 = norm_change_const(zk)
+d = degree(K)
+PB, XB = PXbounds(A, u, c1, c2)
+println("prime gen")
+@show X, nx = genPrimesNext(p_start, XB, zk)
+@show P, np = genPrimesNext(X[nx], PB, zk)
+
+P = RNS(zk, P)
+X = RNS(zk, X)
+@show  k = nLifts(A, X.N, u, c1, c2)
+
+    iX = Array(ZZ,np)
+    for i = 1 : np
+       iX[i] = invmod(X.N, P.p[i])  
+    end
+    Ap = RNSmat(P, A)
+    Ax = RNSmat(X, A)
+    Cx = invM(Ax)
+    Rp = identM(Ap)
+    Mx = Cx
+    Mp = convert(P, Mx)
+
+    Dp = RNSmat(P, D)
+    Dx = RNSmat(X, D)
+    Pp = Dp
+    Nx = Dx*Cx
+    Np = convert(P, Nx)    
+    for i = 1 : k
+@show i
+        Tp = Rp*Rp
+        Up = Rp*Pp
+        Rp = QuadLift(Ap, Mp, Tp, iX) 
+        Pp = QuadLift(Np, Ap, Up, iX)     
+            if iszeroM(Pp)
+                return true
+            end
+        Rx = convert(X, Rp)
+        Tx = Rx*Rx
+        Mx = Cx*Tx
+        Mp = convert(P, Mx)
+
+        Px = convert(X, Pp)
+        Ux = Rx*Px
+        Nx = Ux*Cx
+        Np = convert(P, Nx)
+        
+    end
+    return false
+
 end
 
 
